@@ -1,453 +1,722 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
-  <meta charset="UTF-8">
-  <title>Salvatore - Pedidos</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salvatore - Painel de Controle</title>
 
-  <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
 
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            vinho: '#9E2A2B',
-            verde: '#2F5D3A',
-            creme: '#FFFFFF'
-          }
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        vinho: '#9E2A2B',
+                        verde: '#2F5D3A',
+                        creme: '#FFFFFF',
+                        dark: '#222222',
+                        muted: '#999999',
+                        footer: '#2F5D3A'
+                    }
+                }
+            }
         }
-      }
-    }
-  </script>
+    </script>
+    <style>
+        body {
+            background-color: #f8f8f8;
+        }
+    </style>
 </head>
 
-<body class="bg-creme font-sans">
+<body class="font-sans text-dark w-full m-0 min-h-screen flex flex-col bg-creme">
 
-  <!-- HEADER -->
-  <div class="flex items-center justify-between bg-verde text-white px-6 py-4 shadow-lg">
-
-    <div class="flex items-center gap-4">
-      <img src="images/logo2.webp" alt="Salvatore"
-        class="w-16 h-16 rounded-xl shadow-md border-2 border-white">
-
-      <div>
-        <h1 class="text-xl font-bold tracking-wide">Salvatore</h1>
-        <p class="text-sm text-green-200">Italian Food • 1995</p>
-
-        <!-- STATUS -->
-        <div id="status" class="text-sm mt-1 flex items-center gap-2">
-          <span class="w-2 h-2 bg-red-400 rounded-full"></span>
-          Offline
+    <header class="bg-verde text-white py-4 px-6 flex justify-between items-center sticky top-0 z-50 shadow-lg">
+        <div class="flex items-center gap-4">
+            <img src="images/logo2.webp" onerror="this.src='https://placehold.co/64x64?text=Salvatore'; this.onerror=null;"
+                alt="Salvatore" class="w-16 h-16 rounded-xl shadow-md border-2 border-white object-cover">
+            <div>
+                <h1 class="text-xl font-bold tracking-wide">Salvatore</h1>
+                <p class="text-sm text-green-200">Italian Food • 1995</p>
+            </div>
+            <h1 class="text-2xl font-black text-white hidden md:block border-l-2 border-white pl-4 ml-2">Painel de Controle</h1>
         </div>
-      </div>
-    </div>
-
-    <div class="flex gap-3">
-
-      <!-- BOTÃO ONLINE/OFFLINE -->
-      <button id="btnStatus"
-        onclick="toggleStatus()"
-        class="bg-white text-verde px-4 py-2 rounded-lg shadow font-semibold">
-        Ficar Online
-      </button>
-
-      <!-- BOTÃO ATUALIZAR -->
-      <button onclick="carregarPedidos()"
-        class="bg-vinho hover:bg-red-800 text-white px-5 py-2 rounded-lg shadow">
-        Atualizar
-      </button>
-
-    </div>
-  </div>
-
-  <!-- CONTEÚDO -->
-  <div class="p-6">
-
-    <div class="flex justify-between items-center mb-4">
-
-      <h2 class="text-2xl font-semibold text-verde">
-        Pedidos Recebidos
-      </h2>
-
-      <span id="contador"
-        class="bg-vinho text-white px-4 py-1 rounded-full text-sm shadow">
-        0 pedidos
-      </span>
-
-    </div>
-
-    <div id="pedidosContainer"
-      class="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-    </div>
-
-  </div>
-
-  <script>
-
-    // =========================================
-    // CONFIG API
-    // =========================================
-
-    const URL_API = "https://backend-salvatore-atualvercel.vercel.app/api/pedidos";
-
-    let estaOnline = false;
-
-    // =========================================
-    // STATUS VISUAL
-    // =========================================
-
-    function atualizarStatusVisual(tipo = "offline") {
-
-      const status = document.getElementById("status");
-      const btn = document.getElementById("btnStatus");
-
-      if (tipo === "online") {
-
-        status.innerHTML = `
-          <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-          Online
-        `;
-
-        btn.innerText = "Ficar Offline";
-        btn.className =
-          "bg-red-500 text-white px-4 py-2 rounded-lg shadow font-semibold";
-
-      }
-
-      else if (tipo === "carregando") {
-
-        status.innerHTML = `
-          <span class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>
-          Atualizando...
-        `;
-
-      }
-
-      else {
-
-        status.innerHTML = `
-          <span class="w-2 h-2 bg-red-400 rounded-full"></span>
-          Offline
-        `;
-
-        btn.innerText = "Ficar Online";
-        btn.className =
-          "bg-white text-verde px-4 py-2 rounded-lg shadow font-semibold";
-      }
-    }
-
-    // =========================================
-    // TOGGLE ONLINE/OFFLINE
-    // =========================================
-
-    function toggleStatus() {
-
-      estaOnline = !estaOnline;
-
-      if (estaOnline) {
-        atualizarStatusVisual("online");
-        carregarPedidos();
-      } else {
-        atualizarStatusVisual("offline");
-      }
-    }
-
-    // =========================================
-    // CARREGAR PEDIDOS
-    // =========================================
-
-    async function carregarPedidos() {
-
-      if (!estaOnline) return;
-
-      const contador = document.getElementById("contador");
-
-      try {
-
-        atualizarStatusVisual("carregando");
-
-        const response = await fetch(URL_API);
-
-        if (!response.ok) {
-          throw new Error("Erro ao buscar pedidos");
-        }
-
-        const pedidos = await response.json();
-
-        renderPedidos(pedidos);
-
-        contador.innerText = `${pedidos.length} pedido(s)`;
-
-        setTimeout(() => {
-          atualizarStatusVisual("online");
-        }, 500);
-
-      }
-
-      catch (error) {
-
-        console.error(error);
-
-        renderErro();
-
-        atualizarStatusVisual("offline");
-      }
-    }
-
-    // =========================================
-    // RENDER PEDIDOS
-    // =========================================
-
-    function renderPedidos(pedidos) {
-
-      const container = document.getElementById("pedidosContainer");
-
-      container.innerHTML = "";
-
-      // SEM PEDIDOS
-      if (!pedidos || pedidos.length === 0) {
-
-        container.innerHTML = `
-          <div class="col-span-full flex flex-col items-center justify-center py-16 opacity-60">
-
-            <div class="text-6xl mb-4">
-              🍝
+        <div class="flex items-center gap-4">
+            <div id="status-conexao" class="flex items-center gap-2 text-sm font-bold text-red-200">
+                <span class="w-3 h-3 bg-red-400 rounded-full"></span>
+                Offline
             </div>
-
-            <p class="text-2xl font-bold text-verde">
-              Nenhum pedido pendente
-            </p>
-
-            <p class="text-gray-500 mt-2">
-              A cozinha está tranquila no momento.
-            </p>
-
-          </div>
-        `;
-
-        return;
-      }
-
-      // LOOP DOS PEDIDOS
-      pedidos.forEach(pedido => {
-
-        // Tenta converter itens JSON
-        let itens = [];
-
-        try {
-
-          itens = typeof pedido.itens === "string"
-            ? JSON.parse(pedido.itens)
-            : pedido.itens;
-
-        } catch (e) {
-          console.error("Erro ao converter itens:", e);
-        }
-
-        if (!Array.isArray(itens)) itens = [];
-
-        // HTML DOS ITENS
-        let htmlItens = itens.map(item => `
-
-          <li class="flex justify-between border-b border-gray-100 py-2 text-sm">
-
-            <span class="font-semibold text-gray-700">
-              ${item.quantidade || 1}x ${item.nome || "Produto"}
-            </span>
-
-            <span class="text-gray-500">
-              R$ ${(item.preco || 0).toFixed(2)}
-            </span>
-
-          </li>
-
-        `).join("");
-
-        // DATA FORMATADA
-        let dataFormatada = "Sem horário";
-
-        if (pedido.created_at) {
-
-          const dataObj = new Date(pedido.created_at);
-
-          dataFormatada =
-            dataObj.toLocaleTimeString('pt-BR', {
-              hour: '2-digit',
-              minute: '2-digit'
-            })
-            + " - " +
-            dataObj.toLocaleDateString('pt-BR');
-        }
-
-        // CARD
-        const card = document.createElement("div");
-
-        card.className = `
-          bg-white rounded-2xl shadow-lg border-t-4 border-vinho
-          p-5 flex flex-col hover:shadow-2xl transition
-        `;
-
-        card.innerHTML = `
-
-          <!-- TOPO -->
-          <div class="flex justify-between items-start mb-4">
-
-            <div>
-              <h3 class="text-xl font-black text-vinho">
-                Pedido #${pedido.id}
-              </h3>
-
-              <span class="text-xs text-gray-500">
-                ${dataFormatada}
-              </span>
-            </div>
-
-            <span class="bg-yellow-100 text-yellow-800 text-xs font-bold uppercase px-2 py-1 rounded">
-
-              ${pedido.status || "Pendente"}
-
-            </span>
-
-          </div>
-
-          <!-- CLIENTE -->
-          <div class="bg-gray-50 rounded-lg p-3 mb-4 text-sm">
-
-            <p>
-              <strong>Cliente:</strong>
-              ${pedido.cliente_nome || "Não informado"}
-            </p>
-
-            <p class="mt-1">
-              <strong>Endereço:</strong>
-              ${pedido.cliente_endereco || "Não informado"}
-            </p>
-
-          </div>
-
-          <!-- ITENS -->
-          <div class="flex-grow mb-4">
-
-            <h4 class="font-bold text-sm uppercase text-gray-600 mb-2">
-              Itens do Pedido
-            </h4>
-
-            <ul>
-              ${htmlItens}
-            </ul>
-
-          </div>
-
-          <!-- RODAPÉ -->
-          <div class="pt-4 border-t flex justify-between items-center">
-
-            <div>
-
-              <span class="text-xs uppercase text-gray-500 font-bold">
-                Total
-              </span>
-
-              <p class="text-2xl font-black text-verde">
-                R$ ${(pedido.total || 0).toFixed(2)}
-              </p>
-
-            </div>
-
-            <button onclick="concluirPedido(this)"
-              class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg font-bold transition">
-
-              Pronto ✓
-
+            <button id="btnStatus" onclick="toggleStatus()"
+                class="bg-white text-verde px-4 py-2 rounded-lg shadow font-semibold transition active:scale-95">
+                Ficar Online
             </button>
+            <button onclick="atualizarPainel()"
+                class="bg-vinho text-white px-4 py-2 rounded-lg font-bold hover:bg-red-800 transition active:scale-[0.97]">
+                Atualizar
+            </button>
+        </div>
+    </header>
 
-          </div>
+    <div class="flex justify-center border-b border-gray-200 bg-white shadow-sm overflow-x-auto whitespace-nowrap">
+        <div class="flex gap-8 max-w-7xl w-full px-6">
+            <button id="tab-pedidos" onclick="switchTab('pedidos')" class="py-4 border-b-2 border-vinho text-vinho font-extrabold flex items-center gap-2 transition duration-300">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+                Pedidos Recebidos
+            </button>
+            <button id="tab-produtos" onclick="switchTab('produtos')" class="py-4 border-b-2 border-transparent text-muted hover:text-dark font-extrabold flex items-center gap-2 transition duration-300">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                </svg>
+                Gerenciar Cardápio (Produtos)
+            </button>
+            <button id="tab-categorias" onclick="switchTab('categorias')" class="py-4 border-b-2 border-transparent text-muted hover:text-dark font-extrabold flex items-center gap-2 transition duration-300">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
+                Gerenciar Categorias
+            </button>
+        </div>
+    </div>
 
-        `;
+    <main class="flex-grow p-6">
+        <div class="max-w-7xl mx-auto">
+            
+            <div id="secao-pedidos">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-black text-verde">Pedidos Recebidos (Pendentes)</h2>
+                    <span id="contador-pedidos" class="bg-vinho text-white px-4 py-1 rounded-full font-bold text-sm shadow">0 pedidos</span>
+                </div>
 
-        container.appendChild(card);
+                <div id="pedidos-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <p class="text-muted col-span-full text-center py-10">Fique online para carregar os pedidos...</p>
+                </div>
 
-      });
-    }
+                <div class="mt-12 border-t border-dashed border-gray-300 pt-8">
+                    <div class="flex items-center gap-2 mb-6">
+                        <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+                        <h2 class="text-2xl font-black text-verde">Pedidos Concluídos (Prontos)</h2>
+                    </div>
 
-    // =========================================
-    // ERRO
-    // =========================================
+                    <div id="pedidos-finalizados-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                        <p class="text-muted col-span-full text-center py-6 opacity-60">Nenhum pedido concluído nesta sessão.</p>
+                    </div>
+                </div>
+            </div>
 
-    function renderErro() {
+            <div id="secao-produtos" class="hidden">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+                    <div>
+                        <h2 class="text-3xl font-black text-verde">Cardápio de Produtos</h2>
+                        <p class="text-muted text-sm mt-1">Painel para controle de cadastro: Adicionar, editar ou remover itens do cardápio.</p>
+                    </div>
+                    <button onclick="abrirModalProduto()" class="bg-vinho text-white px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-800 hover:scale-[1.02] active:scale-[0.98] transition shadow-md whitespace-nowrap self-start sm:self-auto">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Novo Produto
+                    </button>
+                </div>
 
-      const container = document.getElementById("pedidosContainer");
-      const contador = document.getElementById("contador");
+                <div id="produtos-container-cozinha" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <p class="text-muted col-span-full text-center py-10">Carregando produtos...</p>
+                </div>
+            </div>
 
-      container.innerHTML = `
+            <div id="secao-categorias" class="hidden">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+                    <div>
+                        <h2 class="text-3xl font-black text-verde">Categorias de Produtos</h2>
+                        <p class="text-muted text-sm mt-1">Painel para controle de categorias: Adicionar, editar ou remover divisões do cardápio.</p>
+                    </div>
+                    <button onclick="abrirModalCategoria()" class="bg-vinho text-white px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-800 hover:scale-[1.02] active:scale-[0.98] transition shadow-md whitespace-nowrap self-start sm:self-auto">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Nova Categoria
+                    </button>
+                </div>
 
-        <div class="col-span-full flex flex-col items-center justify-center text-center bg-red-100 border border-red-300 text-red-800 p-6 rounded-xl shadow">
-
-          <div class="text-4xl mb-3">
-            ⚠️
-          </div>
-
-          <h3 class="font-bold text-lg">
-            Erro ao carregar pedidos
-          </h3>
-
-          <p class="text-sm mt-1">
-            Verifique a conexão com o servidor.
-          </p>
-
-          <button onclick="carregarPedidos()"
-            class="mt-4 bg-vinho text-white px-4 py-2 rounded-lg shadow">
-
-            Tentar novamente
-
-          </button>
+                <div id="categorias-container-cozinha" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <p class="text-muted col-span-full text-center py-10">Carregando categorias...</p>
+                </div>
+            </div>
 
         </div>
-      `;
+    </main>
 
-      contador.innerText = "--";
-    }
+    <footer class="text-center p-6 text-sm text-white bg-footer mt-10">
+        <h3 class="font-bold text-base">Salvatore - Painel de Controle Integrado</h3>
+        <p class="my-1 text-muted text-xs">Exclusivo para uso interno da gerência e cozinha • 1995</p>
+    </footer>
 
-    // =========================================
-    // CONCLUIR PEDIDO
-    // =========================================
+    <div id="produto-modal" class="fixed inset-0 bg-black/70 z-[80] flex justify-center items-center opacity-0 pointer-events-none transition-opacity duration-300 px-4">
+        <div class="bg-white w-full max-w-[500px] rounded-[24px] overflow-hidden transform scale-95 transition-transform duration-300 relative flex flex-col shadow-2xl" id="produto-modal-content">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h3 id="modal-produto-titulo" class="text-2xl font-black text-verde">Cadastrar Produto</h3>
+                <button onclick="fecharModalProduto()" class="text-gray-400 hover:text-dark text-3xl font-bold transition">&times;</button>
+            </div>
+            <form id="produto-form" onsubmit="salvarProduto(event)" class="p-6 flex flex-col gap-4">
+                <input type="hidden" id="prod-id">
+                <div>
+                    <label class="block text-sm font-bold text-dark mb-1">Nome do Produto *</label>
+                    <input type="text" id="prod-nome" required placeholder="Ex: Lasagna Alla Bolognese" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-vinho transition">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-dark mb-1">Categoria *</label>
+                        <select id="prod-categoria" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-vinho transition">
+                            <option value="">Carregando...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-dark mb-1">Preço (R$) *</label>
+                        <input type="number" id="prod-preco" required step="0.01" min="0" placeholder="Ex: 54.90" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-vinho transition">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-dark mb-1">Nome da Imagem ou URL</label>
+                    <input type="text" id="prod-imagem" placeholder="Ex: lasagna.png ou link http" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-vinho transition">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-dark mb-1">Descrição</label>
+                    <textarea id="prod-desc" rows="3" placeholder="Ingredientes e detalhes da receita italiana..." class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-vinho transition resize-none"></textarea>
+                </div>
+                <div class="mt-4 flex gap-3">
+                    <button type="button" onclick="fecharModalProduto()" class="flex-1 py-3 border border-gray-200 text-dark rounded-xl font-bold hover:bg-gray-50 active:scale-[0.98] transition">Cancelar</button>
+                    <button type="submit" id="btn-salvar-produto" class="flex-1 py-3 bg-vinho text-white rounded-xl font-bold hover:bg-red-800 active:scale-[0.98] transition shadow-md">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-    function concluirPedido(btn) {
+    <div id="categoria-modal" class="fixed inset-0 bg-black/70 z-[80] flex justify-center items-center opacity-0 pointer-events-none transition-opacity duration-300 px-4">
+        <div class="bg-white w-full max-w-[400px] rounded-[24px] overflow-hidden transform scale-95 transition-transform duration-300 relative flex flex-col shadow-2xl" id="categoria-modal-content">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h3 id="modal-categoria-titulo" class="text-2xl font-black text-verde">Cadastrar Categoria</h3>
+                <button onclick="fecharModalCategoria()" class="text-gray-400 hover:text-dark text-3xl font-bold transition">&times;</button>
+            </div>
+            <form id="categoria-form" onsubmit="salvarCategoria(event)" class="p-6 flex flex-col gap-4">
+                <input type="hidden" id="cat-id">
+                <div>
+                    <label class="block text-sm font-bold text-dark mb-1">Nome da Categoria *</label>
+                    <input type="text" id="cat-nome" required placeholder="Ex: Massas, Risotos, Vinho" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-vinho transition">
+                </div>
+                <div class="mt-4 flex gap-3">
+                    <button type="button" onclick="fecharModalCategoria()" class="flex-1 py-3 border border-gray-200 text-dark rounded-xl font-bold hover:bg-gray-50 active:scale-[0.98] transition">Cancelar</button>
+                    <button type="submit" id="btn-salvar-categoria" class="flex-1 py-3 bg-vinho text-white rounded-xl font-bold hover:bg-red-800 active:scale-[0.98] transition shadow-md">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-      const card = btn.closest("div.bg-white");
+    <div id="confirm-delete-modal" class="fixed inset-0 bg-black/70 z-[90] flex justify-center items-center opacity-0 pointer-events-none transition-opacity duration-300 px-4">
+        <div class="bg-white w-full max-w-[400px] rounded-[24px] overflow-hidden transform scale-95 transition-transform duration-300 relative flex flex-col p-6 shadow-2xl" id="confirm-delete-content">
+            <div class="flex flex-col items-center text-center">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center text-red-600 mb-4 animate-pulse">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-black text-dark mb-2">Excluir Produto?</h3>
+                <p class="text-muted text-sm mb-6">Tem certeza que deseja remover o produto <strong id="delete-prod-nome" class="text-dark"></strong> do cardápio? Esta ação não poderá ser desfeita.</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="fecharModalDelete()" class="flex-1 py-3 border border-gray-200 text-dark rounded-xl font-bold hover:bg-gray-50 active:scale-[0.98] transition">Cancelar</button>
+                <button id="btn-confirmar-excluir" class="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 active:scale-[0.98] transition shadow-md">Sim, Excluir</button>
+            </div>
+        </div>
+    </div>
 
-      card.classList.add("opacity-50", "grayscale");
+    <div id="confirm-delete-cat-modal" class="fixed inset-0 bg-black/70 z-[90] flex justify-center items-center opacity-0 pointer-events-none transition-opacity duration-300 px-4">
+        <div class="bg-white w-full max-w-[400px] rounded-[24px] overflow-hidden transform scale-95 transition-transform duration-300 relative flex flex-col p-6 shadow-2xl" id="confirm-delete-cat-content">
+            <div class="flex flex-col items-center text-center">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center text-red-600 mb-4 animate-pulse">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-black text-dark mb-2">Excluir Categoria?</h3>
+                <p class="text-muted text-sm mb-6">Tem certeza que deseja remover a categoria <strong id="delete-cat-nome" class="text-dark"></strong>? Todos os produtos vinculados a ela poderão ser afetados.</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="fecharModalDeleteCat()" class="flex-1 py-3 border border-gray-200 text-dark rounded-xl font-bold hover:bg-gray-50 active:scale-[0.98] transition">Cancelar</button>
+                <button id="btn-confirmar-excluir-cat" class="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 active:scale-[0.98] transition shadow-md">Sim, Excluir</button>
+            </div>
+        </div>
+    </div>
 
-      btn.innerText = "Finalizado";
+    <script>
+        // Configurações da API Unificada Salvatore
+        const API_URL = 'https://backend-salvatore-atualvercel.vercel.app/api';
+        const URL_PEDIDOS = `${API_URL}/pedidos`;
+        const URL_PRODUTOS = `${API_URL}/produtos`;
+        const URL_CATEGORIAS = `${API_URL}/categorias`;
 
-      btn.classList.remove("bg-green-600");
-      btn.classList.remove("hover:bg-green-700");
+        let activeTab = 'pedidos';
+        let estaOnline = false;
+        let categoriasData = [];
+        let produtosData = [];
+        let productToDeleteId = null;
+        let categoryToDeleteId = null;
 
-      btn.classList.add("bg-gray-400");
+        // ==========================================
+        // CONTROLE DE VISUALIZAÇÃO DE ABAS
+        // ==========================================
+        function switchTab(tab) {
+            activeTab = tab;
+            const tabPedidos = document.getElementById('tab-pedidos');
+            const tabProdutos = document.getElementById('tab-produtos');
+            const tabCategorias = document.getElementById('tab-categorias');
+            const secaoPedidos = document.getElementById('secao-pedidos');
+            const secaoProdutos = document.getElementById('secao-produtos');
+            const secaoCategorias = document.getElementById('secao-categorias');
 
-      btn.disabled = true;
-    }
+            [tabPedidos, tabProdutos, tabCategorias].forEach(btn => {
+                btn.className = "py-4 border-b-2 border-transparent text-muted hover:text-dark font-extrabold flex items-center gap-2 transition duration-300";
+            });
+            [secaoPedidos, secaoProdutos, secaoCategorias].forEach(sec => {
+                sec.classList.add('hidden');
+            });
 
-    // =========================================
-    // AUTO UPDATE
-    // =========================================
+            if (tab === 'pedidos') {
+                tabPedidos.className = "py-4 border-b-2 border-vinho text-vinho font-extrabold flex items-center gap-2 transition duration-300";
+                secaoPedidos.classList.remove('hidden');
+                carregarPedidos();
+            } else if (tab === 'produtos') {
+                tabProdutos.className = "py-4 border-b-2 border-vinho text-vinho font-extrabold flex items-center gap-2 transition duration-300";
+                secaoProdutos.classList.remove('hidden');
+                carregarProdutosCozinha();
+            } else if (tab === 'categorias') {
+                tabCategorias.className = "py-4 border-b-2 border-vinho text-vinho font-extrabold flex items-center gap-2 transition duration-300";
+                secaoCategorias.classList.remove('hidden');
+                carregarCategoriasCozinha();
+            }
+        }
 
-    setInterval(() => {
+        function atualizarPainel() {
+            if (activeTab === 'pedidos') {
+                carregarPedidos();
+            } else if (activeTab === 'produtos') {
+                carregarProdutosCozinha();
+            } else if (activeTab === 'categorias') {
+                carregarCategoriasCozinha();
+            }
+        }
 
-      if (estaOnline) {
-        carregarPedidos();
-      }
+        // ==========================================
+        // GERENCIAMENTO DE CONEXÃO (ONLINE / OFFLINE)
+        // ==========================================
+        function atualizarStatusVisual(tipo = "offline") {
+            const status = document.getElementById("status-conexao");
+            const btn = document.getElementById("btnStatus");
 
-    }, 10000);
+            if (tipo === "online") {
+                status.innerHTML = `<span class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></span> Online`;
+                status.className = 'flex items-center gap-2 text-sm font-bold text-green-200';
+                btn.innerText = "Ficar Offline";
+                btn.className = "bg-red-500 text-white px-4 py-2 rounded-lg shadow font-semibold transition active:scale-95";
+            } else if (tipo === "carregando") {
+                status.innerHTML = `<span class="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></span> Atualizando...`;
+                status.className = 'flex items-center gap-2 text-sm font-bold text-yellow-200';
+            } else {
+                status.innerHTML = `<span class="w-3 h-3 bg-red-400 rounded-full"></span> Offline`;
+                status.className = 'flex items-center gap-2 text-sm font-bold text-red-200';
+                btn.innerText = "Ficar Online";
+                btn.className = "bg-white text-verde px-4 py-2 rounded-lg shadow font-semibold transition active:scale-95";
+            }
+        }
 
-    // =========================================
-    // INIT
-    // =========================================
+        function toggleStatus() {
+            estaOnline = !estaOnline;
+            if (estaOnline) {
+                atualizarStatusVisual("online");
+                atualizarPainel();
+            } else {
+                atualizarStatusVisual("offline");
+                document.getElementById("pedidos-container").innerHTML = '<p class="text-muted col-span-full text-center py-10">Fique online para carregar os pedidos...</p>';
+                document.getElementById("pedidos-finalizados-container").innerHTML = '<p class="text-muted col-span-full text-center py-6 opacity-60">Nenhum pedido concluído nesta sessão.</p>';
+                document.getElementById('contador-pedidos').innerText = "0 pedidos";
+            }
+        }
 
-    window.onload = () => {
-      atualizarStatusVisual("offline");
-    };
+        // ==========================================
+        // FLUXO DE PEDIDOS (ABREVIADO/PERSISTIDO)
+        // ==========================================
+        async function carregarPedidos() {
+            if (!estaOnline && activeTab === 'pedidos') return;
 
-  </script>
+            const containerPendentes = document.getElementById('pedidos-container');
+            const containerFinalizados = document.getElementById('pedidos-finalizados-container');
+            const contador = document.getElementById('contador-pedidos');
 
+            try {
+                atualizarStatusVisual("carregando");
+                const resposta = await fetch(URL_PEDIDOS);
+                if (!resposta.ok) throw new Error('Erro ao buscar pedidos');
+
+                const pedidos = await resposta.json();
+                
+                const cacheSessao = JSON.parse(localStorage.getItem('salvatore_concluidos') || '[]');
+                
+                const pendentes = pedidos.filter(p => !cacheSessao.includes(p.id) && p.status !== 'Finalizado' && p.status !== 'Concluído');
+                const finalizados = pedidos.filter(p => cacheSessao.includes(p.id) || p.status === 'Finalizado' || p.status === 'Concluído');
+
+                containerPendentes.innerHTML = '';
+                containerFinalizados.innerHTML = '';
+
+                if (pendentes.length === 0) {
+                    containerPendentes.innerHTML = `
+                        <div class="col-span-full flex flex-col items-center justify-center py-16 opacity-60">
+                            <div class="text-6xl mb-4">🍝</div>
+                            <p class="text-xl font-bold text-verde">Nenhum pedido pendente.</p>
+                            <p class="text-muted">A cozinha está tranquila no momento.</p>
+                        </div>`;
+                } else {
+                    pendentes.forEach(pedido => { containerPendentes.innerHTML += criarCardPedido(pedido, false); });
+                }
+
+                if (finalizados.length === 0) {
+                    containerFinalizados.innerHTML = '<p class="text-muted col-span-full text-center py-10 opacity-50">Nenhum pedido concluído nesta sessão.</p>';
+                } else {
+                    finalizados.forEach(pedido => { containerFinalizados.innerHTML += criarCardPedido(pedido, true); });
+                }
+
+                contador.innerText = `${pendentes.length} pedido(s)`;
+                atualizarStatusVisual("online");
+
+            } catch (erro) {
+                console.error(erro);
+                containerPendentes.innerHTML = `<div class="col-span-full bg-red-100 border border-red-300 text-red-800 p-4 rounded-xl text-center">⚠️ Erro ao buscar pedidos na API.</div>`;
+                atualizarStatusVisual("offline");
+            }
+        }
+
+        function criarCardPedido(pedido, isConcluido) {
+            let itens = [];
+            try { itens = typeof pedido.itens === 'string' ? JSON.parse(pedido.itens) : pedido.itens; } catch (e) { }
+            if (!Array.isArray(itens)) itens = [];
+
+            let htmlItens = itens.map(item => `
+                <li class="flex justify-between border-b border-gray-100 py-2 text-sm">
+                    <span class="font-semibold text-gray-700">${item.quantidade || 1}x ${item.nome || 'Produto'}</span>
+                    <span class="text-gray-500">R$ ${(item.preco || 0).toFixed(2)}</span>
+                </li>`).join('');
+
+            let dataFormatada = 'Sem horário';
+            if (pedido.created_at) {
+                const dataObj = new Date(pedido.created_at);
+                dataFormatada = dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ' - ' + dataObj.toLocaleDateString('pt-BR');
+            }
+
+            const statusTexto = isConcluido ? 'Finalizado' : (pedido.status || 'Pendente');
+            const statusClass = isConcluido ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+            const acaoBotao = isConcluido ? `
+                <button onclick="reabrirPedido(${pedido.id})" class="bg-gray-100 hover:bg-gray-200 text-dark px-3 py-1.5 rounded-lg border text-xs font-bold transition">Reabrir ↩</button>
+            ` : `
+                <button onclick="finalizarPedido(${pedido.id})" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg font-bold transition shadow text-sm">Pronto ✓</button>`;
+
+            const cardClass = isConcluido ? 'bg-white rounded-2xl shadow border-t-4 border-green-500 p-5 flex flex-col opacity-75 hover:opacity-100 transition' : 'bg-white rounded-2xl shadow-lg border-t-4 border-vinho p-5 flex flex-col hover:shadow-2xl transition';
+
+            return `
+                <div class="${cardClass}">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-xl font-black text-vinho">Pedido #${pedido.id}</h3>
+                            <span class="text-xs text-gray-500">${dataFormatada}</span>
+                        </div>
+                        <span class="${statusClass} text-xs font-bold uppercase px-2 py-1 rounded">${statusTexto}</span>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 mb-4 text-sm">
+                        <p><strong>Cliente:</strong> ${pedido.cliente_nome || 'Não informado'}</p>
+                        <p class="mt-1"><strong>Endereço:</strong> ${pedido.cliente_endereco || 'Não informado'}</p>
+                    </div>
+                    <div class="flex-grow mb-4">
+                        <h4 class="font-bold text-sm uppercase text-gray-600 mb-2">Itens:</h4>
+                        <ul>${htmlItens}</ul>
+                    </div>
+                    <div class="pt-4 border-t flex justify-between items-center">
+                        <div>
+                            <span class="text-xs uppercase text-gray-500 font-bold">Total</span>
+                            <p class="text-2xl font-black text-verde">R$ ${(pedido.total || 0).toFixed(2)}</p>
+                        </div>
+                        ${acaoBotao}
+                    </div>
+                </div>`;
+        }
+
+        async function finalizarPedido(id) {
+            let cache = JSON.parse(localStorage.getItem('salvatore_concluidos') || '[]');
+            if (!cache.includes(id)) cache.push(id);
+            localStorage.setItem('salvatore_concluidos', JSON.stringify(cache));
+
+            try {
+                await fetch(`${URL_PEDIDOS}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'Finalizado' })
+                });
+            } catch (e) { }
+            carregarPedidos();
+        }
+
+        async function reabrirPedido(id) {
+            let cache = JSON.parse(localStorage.getItem('salvatore_concluidos') || '[]');
+            cache = cache.filter(item => item !== id);
+            localStorage.setItem('salvatore_concluidos', JSON.stringify(cache));
+
+            try {
+                await fetch(`${URL_PEDIDOS}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'Pendente' })
+                });
+            } catch (e) { }
+            carregarPedidos();
+        }
+
+        // ==========================================
+        // GERENCIAMENTO DE PRODUTOS (CRUD COMPLETO)
+        // ==========================================
+        async function carregarCategoriasDropdown() {
+            try {
+                const res = await fetch(URL_CATEGORIAS);
+                if (!res.ok) throw new Error();
+                categoriasData = await res.json();
+                const select = document.getElementById('prod-categoria');
+                select.innerHTML = '<option value="">Selecione a Categoria</option>';
+                categoriasData.forEach(cat => {
+                    select.innerHTML += `<option value="${cat.id}">${cat.nome}</option>`;
+                });
+            } catch (err) {
+                document.getElementById('prod-categoria').innerHTML = '<option value="">Erro ao carregar</option>';
+            }
+        }
+
+        async function carregarProdutosCozinha() {
+            const container = document.getElementById('produtos-container-cozinha');
+            try {
+                container.innerHTML = '<p class="text-muted col-span-full text-center py-10 animate-pulse">Carregando cardápio...</p>';
+                await carregarCategoriasDropdown();
+                
+                const res = await fetch(URL_PRODUTOS);
+                if (!res.ok) throw new Error();
+                produtosData = await res.json();
+                
+                container.innerHTML = '';
+                if (produtosData.length === 0) {
+                    container.innerHTML = '<p class="text-muted col-span-full text-center py-10">Nenhum produto cadastrado.</p>';
+                    return;
+                }
+
+                produtosData.forEach(p => {
+                    const catObj = categoriasData.find(c => c.id == p.categoriaId);
+                    const catNome = catObj ? catObj.nome : 'Sem Categoria';
+                    const img = (p.imagem && p.imagem.startsWith('http')) ? p.imagem : 'https://placehold.co/300x200?text=Salvatore';
+
+                    container.innerHTML += `
+                        <div class="bg-white border border-gray-100 shadow-md rounded-2xl p-5 flex flex-col hover:shadow-xl transition relative group">
+                            <div class="w-full h-40 bg-gray-50 flex justify-center items-center p-4 rounded-xl relative overflow-hidden mb-4">
+                                <img src="${img}" onerror="this.src='https://placehold.co/300x200?text=Salvatore';" alt="${p.nome}" class="max-h-full max-w-full object-contain transition duration-300 group-hover:scale-105">
+                                <span class="absolute top-2 left-2 bg-verde text-white text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full shadow">${catNome}</span>
+                            </div>
+                            <div class="flex-grow">
+                                <h3 class="font-extrabold text-lg text-dark">${p.nome}</h3>
+                                <p class="text-muted text-xs mt-1 line-clamp-2">${p.descricao || 'Sem descrição.'}</p>
+                            </div>
+                            <div class="mt-4 pt-3 border-t flex justify-between items-center">
+                                <span class="text-xl font-black text-verde">R$ ${parseFloat(p.preco).toFixed(2)}</span>
+                                <div class="flex gap-2">
+                                    <button onclick="editarProduto(${p.id})" class="bg-gray-100 text-dark p-2 rounded-lg hover:bg-gray-200 transition">✏️</button>
+                                    <button onclick="abrirModalDelete(${p.id}, '${p.nome}')" class="bg-red-50 text-white p-2 rounded-lg hover:bg-red-600 transition">🗑️</button>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+            } catch (err) {
+                container.innerHTML = '<p class="text-red-500 col-span-full text-center py-10">Erro ao carregar produtos.</p>';
+            }
+        }
+
+        function abrirModalProduto() {
+            document.getElementById('produto-form').reset();
+            document.getElementById('prod-id').value = '';
+            document.getElementById('modal-produto-titulo').innerText = "Cadastrar Produto";
+            const modal = document.getElementById('produto-modal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            document.getElementById('produto-modal-content').classList.remove('scale-95');
+        }
+
+        function fecharModalProduto() {
+            const modal = document.getElementById('produto-modal');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('produto-modal-content').classList.add('scale-95');
+        }
+
+        async function salvarProduto(e) {
+            e.preventDefault();
+            const id = document.getElementById('prod-id').value;
+            const payload = {
+                nome: document.getElementById('prod-nome').value,
+                categoriaId: parseInt(document.getElementById('prod-categoria').value),
+                preco: parseFloat(document.getElementById('prod-preco').value),
+                imagem: document.getElementById('prod-imagem').value,
+                descricao: document.getElementById('prod-desc').value
+            };
+
+            const btn = document.getElementById('btn-salvar-produto');
+            btn.innerText = "Salvando...";
+            btn.disabled = true;
+
+            try {
+                const url = id ? `${URL_PRODUTOS}/${id}` : URL_PRODUTOS;
+                const method = id ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error();
+                fecharModalProduto();
+                carregarProdutosCozinha();
+            } catch (err) { alert("Erro ao salvar produto."); }
+            finally { btn.innerText = "Salvar"; btn.disabled = false; }
+        }
+
+        function editarProduto(id) {
+            const p = produtosData.find(item => item.id == id);
+            if (!p) return;
+            abrirModalProduto();
+            document.getElementById('modal-produto-titulo').innerText = "Editar Produto";
+            document.getElementById('prod-id').value = p.id;
+            document.getElementById('prod-nome').value = p.nome;
+            document.getElementById('prod-categoria').value = p.categoriaId;
+            document.getElementById('prod-preco').value = p.preco;
+            document.getElementById('prod-imagem').value = p.imagem || '';
+            document.getElementById('prod-desc').value = p.descricao || '';
+        }
+
+        function abrirModalDelete(id, nome) {
+            productToDeleteId = id;
+            document.getElementById('delete-prod-nome').innerText = nome;
+            const modal = document.getElementById('confirm-delete-modal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function fecharModalDelete() {
+            document.getElementById('confirm-delete-modal').classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        document.getElementById('btn-confirmar-excluir').onclick = async () => {
+            try {
+                await fetch(`${URL_PRODUTOS}/${productToDeleteId}`, { method: 'DELETE' });
+                fecharModalDelete();
+                carregarProdutosCozinha();
+            } catch (err) { alert("Erro ao deletar."); }
+        };
+
+        // ==========================================
+        // GERENCIAMENTO DE CATEGORIAS (CRUD COMPLETO)
+        // ==========================================
+        async function carregarCategoriasCozinha() {
+            const container = document.getElementById('categorias-container-cozinha');
+            try {
+                container.innerHTML = '<p class="text-muted col-span-full text-center py-10 animate-pulse">Carregando categorias...</p>';
+                const res = await fetch(URL_CATEGORIAS);
+                if (!res.ok) throw new Error();
+                categoriasData = await res.json();
+                
+                container.innerHTML = '';
+                if (categoriasData.length === 0) {
+                    container.innerHTML = '<p class="text-muted col-span-full text-center py-10">Nenhuma categoria cadastrada.</p>';
+                    return;
+                }
+
+                categoriasData.forEach(c => {
+                    container.innerHTML += `
+                        <div class="bg-white border shadow-md rounded-2xl p-5 flex justify-between items-center hover:shadow-lg transition">
+                            <div>
+                                <h3 class="font-bold text-xl text-verde">${c.nome}</h3>
+                                <span class="text-xs text-muted">ID da Categoria: #${c.id}</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="editarCategoria(${c.id}, '${c.nome}')" class="bg-gray-100 text-dark p-2 rounded-lg hover:bg-gray-200 transition">✏️</button>
+                                <button onclick="abrirModalDeleteCat(${c.id}, '${c.nome}')" class="bg-red-50 text-white p-2 rounded-lg hover:bg-red-600 transition">🗑️</button>
+                            </div>
+                        </div>`;
+                });
+            } catch (err) { container.innerHTML = '<p class="text-red-500 col-span-full text-center py-10">Erro ao carregar.</p>'; }
+        }
+
+        function abrirModalCategoria() {
+            document.getElementById('categoria-form').reset();
+            document.getElementById('cat-id').value = '';
+            document.getElementById('modal-categoria-titulo').innerText = "Cadastrar Categoria";
+            document.getElementById('categoria-modal').classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function fecharModalCategoria() {
+            document.getElementById('categoria-modal').classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        async function salvarCategoria(e) {
+            e.preventDefault();
+            const id = document.getElementById('cat-id').value;
+            const payload = { nome: document.getElementById('cat-nome').value };
+            try {
+                const url = id ? `${URL_CATEGORIAS}/${id}` : URL_CATEGORIAS;
+                await fetch(url, {
+                    method: id ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                fecharModalCategoria();
+                carregarCategoriasCozinha();
+            } catch (err) { alert("Erro ao salvar."); }
+        }
+
+        function editarCategoria(id, nome) {
+            abrirModalCategoria();
+            document.getElementById('modal-categoria-titulo').innerText = "Editar Categoria";
+            document.getElementById('cat-id').value = id;
+            document.getElementById('cat-nome').value = nome;
+        }
+
+        function abrirModalDeleteCat(id, nome) {
+            categoryToDeleteId = id;
+            document.getElementById('delete-cat-nome').innerText = nome;
+            document.getElementById('confirm-delete-cat-modal').classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function fecharModalDeleteCat() {
+            document.getElementById('confirm-delete-cat-modal').classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        document.getElementById('btn-confirmar-excluir-cat').onclick = async () => {
+            try {
+                await fetch(`${URL_CATEGORIAS}/${categoryToDeleteId}`, { method: 'DELETE' });
+                fecharModalDeleteCat();
+                carregarCategoriasCozinha();
+            } catch (err) { alert("Erro ao excluir."); }
+        };
+
+        // ==========================================
+        // AUTO REFRESH (A CADA 10 SEGUNDOS)
+        // ==========================================
+        setInterval(() => {
+            if (estaOnline && activeTab === 'pedidos') {
+                carregarPedidos();
+            }
+        }, 10000);
+
+        window.onload = () => {
+            atualizarStatusVisual("offline");
+        };
+    </script>
 </body>
+
 </html>
